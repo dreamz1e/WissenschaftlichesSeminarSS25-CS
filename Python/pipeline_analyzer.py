@@ -4,9 +4,10 @@ import pandas as pd
 from functools import lru_cache
 
 # --- Konfiguration ---
-MIN_FREQUENCY = 2  # Minimum frequency for a term to be kept
+MIN_FREQUENCY_SMALL = 1  # For small datasets (≤1000 sentences)
+MIN_FREQUENCY_LARGE = 2  # For large datasets (>1000 sentences)
 MAX_PHRASE_LEN = 5 # Maximum length of extracted terms
-DEVELOPMENT_MODE = False  # Set to True to process only first 5000 sentences for testing
+DEVELOPMENT_MODE = True  # Set to True to process only first 5000 sentences for testing
 MAX_SENTENCES_DEV = 5000  # Number of sentences to process in development mode
 
 # Laden der spaCy Modelle für Lemmatisierung
@@ -21,21 +22,42 @@ except OSError:
 
 # --- Optimierte Hilfsfunktionen ---
 
-@lru_cache(maxsize=10000)
-def lemmatize_cached(text, lang='de'):
-    """Cached lemmatization to avoid repeated processing of the same text."""
+def normalize_text(text, lang='de'):
+    """Minimal normalization that preserves important distinctions like plurality."""
     nlp = nlp_de if lang == 'de' else nlp_en
-    return " ".join([token.lemma_.lower() for token in nlp(text.strip())])
+    
+    # Simple normalization: lowercase + basic cleaning
+    normalized_tokens = []
+    
+    for token in nlp(text.strip()):
+        # Keep most words as-is, just lowercase
+        normalized = token.text.lower()
+        
+        # Only lemmatize very common function words to reduce noise
+        if lang == 'de':
+            # German: Only lemmatize articles and very common words
+            if token.pos_ in ['ART', 'ADP'] and len(token.text) <= 3:
+                normalized = token.lemma_.lower()
+        else:
+            # English: Only lemmatize very common function words
+            if token.pos_ in ['DET', 'ADP'] and len(token.text) <= 3:
+                normalized = token.lemma_.lower()
+        
+        normalized_tokens.append(normalized)
+    
+    return " ".join(normalized_tokens)
 
-def lemmatize_batch(texts, lang='de'):
-    """Batch lemmatization for better performance."""
+@lru_cache(maxsize=10000)
+def normalize_cached(text, lang='de'):
+    """Cached normalization to avoid repeated processing."""
+    return normalize_text(text, lang)
+
+def normalize_batch(texts, lang='de'):
+    """Batch normalization for better performance."""
     if not texts:
         return []
     
-    nlp = nlp_de if lang == 'de' else nlp_en
-    # Process multiple texts in a single spaCy call
-    docs = list(nlp.pipe(texts))
-    return [" ".join([token.lemma_.lower() for token in doc]) for doc in docs]
+    return [normalize_text(text, lang) for text in texts]
 
 
 def find_gold_sentences_in_testdata(gold_src_file, gold_trg_file, test_src_file, test_trg_file):
@@ -146,8 +168,10 @@ def parse_alignment(alignment_line):
     return alignments
 
 def load_gold_terminology(filepath):
-    """Optimierte Terminologie-Ladung mit Caching."""
+    """Lädt die manuelle Gold-Terminologieliste mit minimaler Normalisierung."""
+    print("  Lade und normalisiere Gold-Terminologie...")
     gold_terms = set()
+    
     with open(filepath, 'r', encoding='utf-8') as f:
         lines = f.readlines()
     
@@ -160,14 +184,20 @@ def load_gold_terminology(filepath):
             src_texts.append(src.strip())
             trg_texts.append(trg.strip())
     
-    # Batch-Lemmatisierung
+    # Batch-Normalisierung
     if src_texts and trg_texts:
-        lemmatized_src = lemmatize_batch(src_texts, 'de')
-        lemmatized_trg = lemmatize_batch(trg_texts, 'en')
+        normalized_src = normalize_batch(src_texts, 'de')
+        normalized_trg = normalize_batch(trg_texts, 'en')
         
-        for lemma_src, lemma_trg in zip(lemmatized_src, lemmatized_trg):
-            if lemma_src and lemma_trg:
-                gold_terms.add((lemma_src, lemma_trg))
+        # Debug: Zeige erste paar Beispiele
+        print(f"    Beispiele der Gold-Terminologie-Normalisierung:")
+        for i in range(min(3, len(src_texts))):
+            print(f"      DE: '{src_texts[i]}' -> '{normalized_src[i]}'")
+            print(f"      EN: '{trg_texts[i]}' -> '{normalized_trg[i]}'")
+        
+        for norm_src, norm_trg in zip(normalized_src, normalized_trg):
+            if norm_src and norm_trg:
+                gold_terms.add((norm_src, norm_trg))
     
     return gold_terms
 
@@ -209,9 +239,34 @@ def calculate_aer(model_align_file, gold_align_file):
 
 
 def evaluate_terminology(extracted_terms_set, gold_terms_set):
-    """Berechnet Precision, Recall und F1-Score."""
+    """Berechnet Precision, Recall und F1-Score mit Debug-Ausgabe."""
     
-    TP = len(extracted_terms_set.intersection(gold_terms_set))
+    print("  Debug: Terminologie-Evaluation...")
+    print(f"    Anzahl extrahierter Terme: {len(extracted_terms_set)}")
+    print(f"    Anzahl Gold-Terme: {len(gold_terms_set)}")
+    
+    # Finde Überschneidungen
+    intersection = extracted_terms_set.intersection(gold_terms_set)
+    print(f"    Überschneidungen (True Positives): {len(intersection)}")
+    
+    # Zeige erste paar Überschneidungen
+    if intersection:
+        print("    Beispiele für True Positives:")
+        for i, pair in enumerate(list(intersection)[:3]):
+            print(f"      {pair[0]} ||| {pair[1]}")
+    else:
+        print("    ❌ Keine Überschneidungen gefunden!")
+        
+        # Debug: Zeige erste paar Terme aus beiden Sets
+        print("    Erste paar extrahierte Terme:")
+        for i, pair in enumerate(list(extracted_terms_set)[:3]):
+            print(f"      {pair[0]} ||| {pair[1]}")
+        
+        print("    Erste paar Gold-Terme:")
+        for i, pair in enumerate(list(gold_terms_set)[:3]):
+            print(f"      {pair[0]} ||| {pair[1]}")
+    
+    TP = len(intersection)
     FP = len(extracted_terms_set - gold_terms_set)
     FN = len(gold_terms_set - extracted_terms_set)
 
@@ -298,6 +353,10 @@ def run_extraction_pipeline(source_file, target_file, alignment_file):
     
     print(f"  Verarbeite {total_lines} Satzpaare...")
     
+    # Adaptive Frequenz-Schwelle basierend auf Datensatzgröße
+    min_freq = MIN_FREQUENCY_SMALL if total_lines <= 1000 else MIN_FREQUENCY_LARGE
+    print(f"  Verwende Mindestfrequenz: {min_freq} (Datensatzgröße: {total_lines})")
+    
     # Batch-Verarbeitung für bessere Performance
     batch_size = 500
     current_batch = []
@@ -316,25 +375,38 @@ def run_extraction_pipeline(source_file, target_file, alignment_file):
             trg_tokens = trg_line.strip().split()
             align_set = parse_alignment(align_line)
 
+            # Debug: Show first few alignments for gold standard
+            if total_lines <= 100 and line_idx < 3:  # Reduced to 3 for less noise
+                print(f"    Debug Satz {line_idx + 1}:")
+                print(f"      DE: {src_line.strip()}")
+                print(f"      EN: {trg_line.strip()}")
+                print(f"      Alignment: {align_line.strip()}")
+
             phrases = extract_consistent_phrases(src_tokens, trg_tokens, align_set)
+            
+            # Debug: Show extracted phrases for first few sentences
+            if total_lines <= 100 and line_idx < 3:
+                print(f"      Extrahierte Phrasen (vor Normalisierung): {phrases[:5]}...")  # Limit output
+                print()
+            
             current_batch.extend(phrases)
             processed += 1
             
             # Verarbeite Batch oder zeige Fortschritt
             if processed % batch_size == 0 or processed == total_lines:
-                # Batch-Lemmatisierung
+                # Batch-Normalisierung (statt Lemmatisierung)
                 if current_batch:
                     src_phrases = [phrase[0] for phrase in current_batch]
                     trg_phrases = [phrase[1] for phrase in current_batch]
                     
-                    # Lemmatisiere in Batches
-                    lemmatized_src = lemmatize_batch(src_phrases, 'de')
-                    lemmatized_trg = lemmatize_batch(trg_phrases, 'en')
+                    # Normalisiere in Batches
+                    normalized_src = normalize_batch(src_phrases, 'de')
+                    normalized_trg = normalize_batch(trg_phrases, 'en')
                     
-                    # Kombiniere lemmatisierte Paare
-                    for lemma_src, lemma_trg in zip(lemmatized_src, lemmatized_trg):
-                        if lemma_src and lemma_trg:
-                            all_extracted_pairs.append((lemma_src, lemma_trg))
+                    # Kombiniere normalisierte Paare
+                    for norm_src, norm_trg in zip(normalized_src, normalized_trg):
+                        if norm_src and norm_trg:
+                            all_extracted_pairs.append((norm_src, norm_trg))
                     
                     current_batch = []
                 
@@ -345,12 +417,41 @@ def run_extraction_pipeline(source_file, target_file, alignment_file):
 
     print(f"  Extraktion abgeschlossen. Gefundene Phrasenpaare: {len(all_extracted_pairs)}")
     
-    # Frequenz-Filterung
-    print("  Führe Frequenz-Filterung durch...")
-    pair_counts = Counter(all_extracted_pairs)
-    final_term_set = {pair for pair, count in pair_counts.items() if count >= MIN_FREQUENCY}
+    # Debug: Zeige erste paar extrahierte Paare
+    if all_extracted_pairs:
+        print(f"    Beispiele extrahierter Phrasenpaare (nach Normalisierung):")
+        for i in range(min(5, len(all_extracted_pairs))):
+            pair = all_extracted_pairs[i]
+            print(f"      {pair[0]} ||| {pair[1]}")
     
-    print(f"  Nach Filterung (>= {MIN_FREQUENCY}): {len(final_term_set)} einzigartige Terme")
+    # Frequenz-Filterung mit adaptiver Schwelle
+    print(f"  Führe Frequenz-Filterung durch (>= {min_freq})...")
+    pair_counts = Counter(all_extracted_pairs)
+    
+    # Debug: Zeige Frequenz-Statistiken
+    if total_lines <= 100:  # Nur für kleine Datensätze (Gold)
+        print(f"    Frequenz-Verteilung:")
+        freq_dist = Counter(pair_counts.values())
+        for freq, count in sorted(freq_dist.items()):
+            print(f"      {count} Terme erscheinen {freq}x")
+        
+        # Zeige Beispiele von gefilterten Termen
+        filtered_out = {pair: count for pair, count in pair_counts.items() if count < min_freq}
+        if filtered_out:
+            print(f"    Beispiele gefilterter Terme (< {min_freq}):")
+            for i, (pair, count) in enumerate(list(filtered_out.items())[:5]):
+                print(f"      {pair[0]} ||| {pair[1]} (freq: {count})")
+    
+    final_term_set = {pair for pair, count in pair_counts.items() if count >= min_freq}
+    
+    print(f"  Nach Filterung (>= {min_freq}): {len(final_term_set)} einzigartige Terme")
+    
+    # Debug: Zeige erste paar gefilterte Terme
+    if final_term_set:
+        print(f"    Beispiele verbleibender Terme:")
+        for i, pair in enumerate(list(final_term_set)[:5]):
+            freq = pair_counts[pair]
+            print(f"      {pair[0]} ||| {pair[1]} (freq: {freq})")
     
     return final_term_set, pair_counts
 
@@ -388,7 +489,7 @@ def analyze_model(model_name, source_file, target_file, model_align_file, gold_a
     # 2. Terminologieextraktion
     print("  Starte Terminologieextraktion...")
     extracted_terms, term_counts = run_extraction_pipeline(source_file, target_file, model_align_file)
-    print(f"  Anzahl extrahierter Terme (nach Filterung >= {MIN_FREQUENCY}): {len(extracted_terms)}")
+    print(f"  Anzahl extrahierter Terme: {len(extracted_terms)}")
 
     # 3. Extrinsische Evaluation (P/R/F1) - nur wenn Gold-Terminologie verfügbar
     if gold_terms_set:
@@ -441,8 +542,10 @@ if __name__ == "__main__":
         print("")
     
     print("🚀 Optimierungen aktiv:")
-    print("   • Batch-Lemmatisierung für bessere Performance")
-    print("   • Cached Lemmatization für wiederholte Phrasen")
+    print("   • Minimale Normalisierung (behält Pluralformen bei)")
+    print("   • Adaptive Frequenz-Filterung (1 für kleine, 2 für große Datensätze)")
+    print("   • Batch-Verarbeitung für bessere Performance")
+    print("   • Cached Normalization für wiederholte Phrasen")
     print("   • Optimierte Phrase-Extraktion mit früher Terminierung")
     print("   • Reduzierte Fortschrittsanzeige (alle 2500 Sätze)")
     print("   • Effiziente Datenstrukturen für Alignment-Lookups")
