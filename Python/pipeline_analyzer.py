@@ -4,9 +4,9 @@ import pandas as pd
 from functools import lru_cache
 
 # --- Konfiguration ---
-MIN_FREQUENCY = 2  # Minimum frequency for a term to be kept
+MIN_FREQUENCY = 1  # Minimum frequency for a term to be kept
 MAX_PHRASE_LEN = 5 # Maximum length of extracted terms
-DEVELOPMENT_MODE = False  # Set to True to process only first 5000 sentences for testing
+DEVELOPMENT_MODE = True  # Set to True to process only first 5000 sentences for testing
 MAX_SENTENCES_DEV = 5000  # Number of sentences to process in development mode
 
 # Laden der spaCy Modelle für Lemmatisierung
@@ -428,6 +428,48 @@ def analyze_model(model_name, source_file, target_file, model_align_file, gold_a
     print(f"  Modell-Analyse abgeschlossen: {model_name} ({evaluation_type})")
     return results
 
+def debug_single_sentence(sentence_index, model_align_file, gold_align_file):
+    """Zeigt alle relevanten Informationen für einen einzelnen Satz zur Fehlersuche."""
+    
+    with open('../Corpus/GOLD_MANUAL/gold.de', 'r', encoding='utf-8') as f: src_line = f.readlines()[sentence_index]
+    with open('../Corpus/GOLD_MANUAL/gold.en', 'r', encoding='utf-8') as f: trg_line = f.readlines()[sentence_index]
+    with open(model_align_file, 'r', encoding='utf-8') as f: model_align = f.readlines()[sentence_index]
+    with open(gold_align_file, 'r', encoding='utf-8') as f: gold_align = f.readlines()[sentence_index]
+        
+    src_tokens = src_line.strip().split()
+    trg_tokens = trg_line.strip().split()
+    align_set = parse_alignment(model_align)
+
+    print("\n" + "="*30)
+    print(f"DEBUGGING SATZ #{sentence_index}")
+    print("="*30)
+    print(f"DE: {src_line.strip()}")
+    print(f"EN: {trg_line.strip()}")
+    print(f"\nModell-Alignments: {model_align.strip()}")
+    print(f"Gold-Alignments:   {gold_align.strip()}")
+    
+    extracted_phrases = extract_consistent_phrases(src_tokens, trg_tokens, align_set)
+    
+    print("\nExtrahierte Phrasen (vor Lemmatisierung):")
+    if not extracted_phrases: print("  Keine")
+    for src, trg in extracted_phrases:
+        print(f"  - ('{src}', '{trg}')")
+        
+    print("\nExtrahierte Phrasen (NACH Lemmatisierung):")
+    lemmatized_pairs = []
+    if not extracted_phrases: print("  Keine")
+    for src, trg in extracted_phrases:
+        lemma_src = lemmatize_cached(src, 'de')
+        lemma_trg = lemmatize_cached(trg, 'en')
+        lemmatized_pairs.append((lemma_src, lemma_trg))
+        print(f"  - ('{lemma_src}', '{lemma_trg}')")
+        
+    print("\nVergleich mit Gold-Terminologie:")
+    for l_src, l_trg in lemmatized_pairs:
+        if (l_src, l_trg) in gold_terms:
+            print(f"  -> TREFFER GEFUNDEN: ('{l_src}', '{l_trg}')")
+
+
 # --- Main Execution ---
 if __name__ == "__main__":
     
@@ -461,8 +503,19 @@ if __name__ == "__main__":
 
     # 1. Lade Goldstandard-Terminologie
     print("Lade Gold-Terminologie...")
-    gold_terms = load_gold_terminology(GOLD_TERMS_FILE)
-    print(f"Anzahl einzigartiger Gold-Terme: {len(gold_terms)}")
+        
+    # DEBUGGING:
+    # Wählen Sie einen Satz aus Ihrem Gold-Standard, von dem Sie wissen, dass er
+    # einen wichtigen Term enthält, der nicht gefunden wurde.
+    debug_sentence_index = 42 # Ändern Sie diesen Index!
+    debug_model_align_file = "temp_fast_align_gold.align" # Die zu prüfende Datei
+    
+    # Laden Sie die Gold-Terme, bevor Sie die Funktion aufrufen
+    if 'gold_terms' not in locals():
+         gold_terms = load_gold_terminology(GOLD_TERMS_FILE)
+         
+    #debug_single_sentence(debug_sentence_index, debug_model_align_file, GOLD_ALIGN)
+    #print(f"Anzahl einzigartiger Gold-Terme: {len(gold_terms)}")
 
     # 2. Finde Gold-Standard-Sätze in Test-Daten
     gold_to_test_mapping = find_gold_sentences_in_testdata(GOLD_SRC, GOLD_TRG, TEST_SRC, TEST_TRG)
