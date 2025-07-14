@@ -1,0 +1,667 @@
+Logging initialized. Log file: logs/pipeline_analysis_20250714_123601.log
+============================================================
+PERFORMANCE-OPTIMIERTE PIPELINE ANALYZER
+============================================================
+📝 Log-Datei: logs/pipeline_analysis_20250714_123601.log
+
+🚀 Optimierungen aktiv:
+   • Minimale Normalisierung (behält Pluralformen bei)
+   • Adaptive Frequenz-Filterung (1 für kleine, 2 für große Datensätze)
+   • Batch-Verarbeitung für bessere Performance
+   • Cached Normalization für wiederholte Phrasen
+   • Optimierte Phrase-Extraktion mit früher Terminierung
+   • Reduzierte Fortschrittsanzeige (alle 2500 Sätze)
+   • Effiziente Datenstrukturen für Alignment-Lookups
+
+Lade Gold-Terminologie...
+  Lade und normalisiere Gold-Terminologie...
+    Beispiele der Gold-Terminologie-Normalisierung:
+      DE: 'filmfestivals' -> 'filmfestivals'
+      EN: 'film festivals' -> 'film festivals'
+      DE: 'die datei' -> 'die datei'
+      EN: 'the file' -> 'the file'
+      DE: 'rücktransport von patienten' -> 'rücktransport von patienten'
+      EN: 'repatriation services for patients' -> 'repatriation services for patients'
+Anzahl einzigartiger Gold-Terme: 86
+Suche Gold-Standard-Sätze in Test-Daten...
+  Lade Gold-Standard-Sätze...
+  Lade Test-Daten...
+  Durchsuche 50000 Test-Sätze...
+    Verarbeite Gold-Satz 1/100
+    Verarbeite Gold-Satz 11/100
+    Verarbeite Gold-Satz 21/100
+    Verarbeite Gold-Satz 31/100
+    Verarbeite Gold-Satz 41/100
+    Verarbeite Gold-Satz 51/100
+    Verarbeite Gold-Satz 61/100
+    Verarbeite Gold-Satz 71/100
+    Verarbeite Gold-Satz 81/100
+    Verarbeite Gold-Satz 91/100
+Gefunden: 100 von 100 Gold-Standard-Sätzen in Test-Daten
+Extrahiere Alignments für Gold-Standard-Sätze aus fast_align/test.final.align...
+  Lade Alignment-Datei...
+  Alignment-Datei enthält 50000 Zeilen
+Alignments für 100 Gold-Standard-Sätze nach temp_fast_align_gold.align geschrieben
+
+--- Analysiere Modell: Fast_Align (Gold) ---
+  Quelldatei: ../Corpus/GOLD_MANUAL/gold.de (0.0 MB)
+  Alignment-Datei: temp_fast_align_gold.align (0.0 MB)
+  Berechne AER...
+  AER: 0.4275
+  Starte Terminologieextraktion...
+  Starte Phrasenextraktion...
+  Verarbeite 100 Satzpaare...
+  Verwende Mindestfrequenz: 1 (Datensatzgröße: 100)
+    Debug Satz 1:
+      DE: durchführung von filmfestivals
+      EN: conducting of film festivals
+      Alignment: 0-0 1-1 2-2 2-3
+      Extrahierte Phrasen (vor Normalisierung): [('durchführung', 'conducting'), ('durchführung von', 'conducting of'), ('durchführung von filmfestivals', 'conducting of film festivals'), ('von', 'of'), ('von filmfestivals', 'of film festivals')]...
+
+    Debug Satz 2:
+      DE: die datei „ % 1 “ kann nicht geöffnet werden , da libarchive sie nicht verarbeiten kann .
+      EN: unable to open the file ' % 1 ' , libarchive can not handle it .
+      Alignment: 0-1 0-3 1-0 1-4 2-5 3-6 4-7 5-5 5-8 6-11 7-12 8-2 10-9 11-12 12-10 13-11 14-12 15-13 16-11 16-14 17-15
+      Extrahierte Phrasen (vor Normalisierung): [('„ % 1 “', "' % 1 '"), ('%', '%'), ('% 1', '% 1'), ('1', '1'), ('geöffnet', 'open')]...
+
+    Debug Satz 3:
+      DE: rücktransport von patienten
+      EN: repatriation services for patients
+      Alignment: 0-0 0-1 1-2 2-3
+      Extrahierte Phrasen (vor Normalisierung): [('rücktransport', 'repatriation services'), ('rücktransport von', 'repatriation services for'), ('rücktransport von patienten', 'repatriation services for patients'), ('von', 'for'), ('von patienten', 'for patients')]...
+
+    Fortschritt: 100/100 (100.0%)
+  Extraktion abgeschlossen. Gefundene Phrasenpaare: 1026
+    Beispiele extrahierter Phrasenpaare (nach Normalisierung):
+      durchführung ||| conducting
+      durchführung von ||| conducting of
+      durchführung von filmfestivals ||| conducting of film festivals
+      von ||| of
+      von filmfestivals ||| of film festivals
+  Führe Frequenz-Filterung durch (>= 1)...
+    Frequenz-Verteilung:
+      869 Terme erscheinen 1x
+      13 Terme erscheinen 2x
+      6 Terme erscheinen 3x
+      3 Terme erscheinen 4x
+      9 Terme erscheinen 5x
+      1 Terme erscheinen 6x
+      3 Terme erscheinen 9x
+      1 Terme erscheinen 11x
+      1 Terme erscheinen 12x
+  Nach Filterung (>= 1): 906 einzigartige Terme
+    Beispiele verbleibender Terme:
+      importiert ||| extracted (freq: 1)
+      bereich ||| field of (freq: 1)
+      dienste zu reproduzierung von computerprogrammen ||| services for reproducing computer programs (freq: 1)
+      importiert . ||| extracted . (freq: 1)
+      unter ||| www (freq: 1)
+  Anzahl extrahierter Terme: 906
+  Top 20 extrahierte Terme:
+     1. . ||| . (freq: 12)
+     2. für ||| for (freq: 11)
+     3. von ||| of (freq: 9)
+     4. : ||| : (freq: 9)
+     5. zu ||| for (freq: 9)
+     6. % ||| % (freq: 6)
+     7. % 1 ||| % 1 (freq: 5)
+     8. 1 ||| 1 (freq: 5)
+     9. , ||| , (freq: 5)
+    10. ... ||| ... (freq: 5)
+    11. ) ||| ) (freq: 5)
+    12. der ||| the (freq: 5)
+    13. und ||| and (freq: 5)
+    14. der ||| of (freq: 5)
+    15. ; ||| ; (freq: 5)
+    16. nicht ||| not (freq: 4)
+    17. die ||| the (freq: 4)
+    18. ( ||| ( (freq: 4)
+    19. aus ||| of (freq: 3)
+    20. anzahl der ||| number of (freq: 3)
+  Berechne Terminologie-Metriken...
+  Debug: Terminologie-Evaluation...
+    Anzahl extrahierter Terme: 906
+    Anzahl Gold-Terme: 86
+    Überschneidungen (True Positives): 49
+    Beispiele für True Positives:
+      abfallsammelbehälter ||| waste collection containers
+      benutzer ||| user
+      konservendosen aus metall ||| preserving boxes of metal
+  Terminologie-Evaluation: P=0.0541, R=0.5698, F1=0.0988
+
+  Beispiele für False Positives (Extrahiert, aber nicht Gold):
+    - importiert ||| extracted
+    - bereich ||| field of
+    - dienste zu reproduzierung von computerprogrammen ||| services for reproducing computer programs
+    - importiert . ||| extracted .
+    - unter ||| www
+
+  Beispiele für False Negatives (Gold, aber nicht gefunden):
+    - ca-zertifikat ||| ca certificate
+    - zellenformat ||| format
+    - verbindung zu server ||| connection from server
+    - gentests an tieren ||| genetic testing of laboratory animals
+    - knochen an lebenden objekt ||| in - vivo measurement of bone
+  Modell-Analyse abgeschlossen: Fast_Align (Gold)
+
+--- Analysiere Modell: Fast_Align (Full) ---
+  Quelldatei: ../Corpus/TEST_DATA/TEST_DATA.de (3.4 MB)
+  Alignment-Datei: fast_align/test.final.align (2.9 MB)
+  AER: Nicht verfügbar (nur für Gold-Standard)
+  Starte Terminologieextraktion...
+  Starte Phrasenextraktion...
+  Verarbeite 50000 Satzpaare...
+  Verwende Mindestfrequenz: 2 (Datensatzgröße: 50000)
+    Fortschritt: 2500/50000 (5.0%)
+    Fortschritt: 5000/50000 (10.0%)
+    Fortschritt: 7500/50000 (15.0%)
+    Fortschritt: 10000/50000 (20.0%)
+    Fortschritt: 12500/50000 (25.0%)
+    Fortschritt: 15000/50000 (30.0%)
+    Fortschritt: 17500/50000 (35.0%)
+    Fortschritt: 20000/50000 (40.0%)
+    Fortschritt: 22500/50000 (45.0%)
+    Fortschritt: 25000/50000 (50.0%)
+    Fortschritt: 27500/50000 (55.0%)
+    Fortschritt: 30000/50000 (60.0%)
+    Fortschritt: 32500/50000 (65.0%)
+    Fortschritt: 35000/50000 (70.0%)
+    Fortschritt: 37500/50000 (75.0%)
+    Fortschritt: 40000/50000 (80.0%)
+    Fortschritt: 42500/50000 (85.0%)
+    Fortschritt: 45000/50000 (90.0%)
+    Fortschritt: 47500/50000 (95.0%)
+    Fortschritt: 50000/50000 (100.0%)
+  Extraktion abgeschlossen. Gefundene Phrasenpaare: 601472
+    Beispiele extrahierter Phrasenpaare (nach Normalisierung):
+      erinnerung ||| alarm
+      angegebenen ||| specified
+      angegebenen zeitspanne ||| specified time interval
+      zeitspanne ||| time interval
+      , ausgehend von ||| from
+  Führe Frequenz-Filterung durch (>= 2)...
+  Nach Filterung (>= 2): 41691 einzigartige Terme
+    Beispiele verbleibender Terme:
+      gleichen ||| same (freq: 22)
+      namen für die ||| name for the (freq: 3)
+      ) ist ein ||| ) is a (freq: 2)
+      , so ||| , so (freq: 3)
+      verfolgung ||| tracking (freq: 6)
+  Anzahl extrahierter Terme: 41691
+  Top 20 extrahierte Terme:
+     1. . ||| . (freq: 9376)
+     2. für ||| for (freq: 8448)
+     3. von ||| of (freq: 5482)
+     4. und ||| and (freq: 4585)
+     5. , ||| , (freq: 3703)
+     6. die ||| the (freq: 3242)
+     7. ] ||| ] (freq: 3134)
+     8. [ ||| [ (freq: 3061)
+     9. & ||| & (freq: 2989)
+    10. : ||| : (freq: 2511)
+    11. % ||| % (freq: 2464)
+    12. in ||| in (freq: 2247)
+    13. ; ||| ; (freq: 2134)
+    14. ( ||| ( (freq: 1979)
+    15. ) ||| ) (freq: 1964)
+    16. der ||| the (freq: 1864)
+    17. 1 ||| 1 (freq: 1809)
+    18. zu ||| for (freq: 1652)
+    19. % 1 ||| % 1 (freq: 1563)
+    20. oder ||| or (freq: 1532)
+  Berechne Terminologie-Metriken...
+  Debug: Terminologie-Evaluation...
+    Anzahl extrahierter Terme: 41691
+    Anzahl Gold-Terme: 86
+    Überschneidungen (True Positives): 13
+    Beispiele für True Positives:
+      chemische präparate ||| chemical preparations
+      die datei ||| the file
+      benutzer ||| user
+  Terminologie-Evaluation: P=0.0003, R=0.1512, F1=0.0006
+
+  Beispiele für False Positives (Extrahiert, aber nicht Gold):
+    - gleichen ||| same
+    - namen für die ||| name for the
+    - ) ist ein ||| ) is a
+    - , so ||| , so
+    - verfolgung ||| tracking
+
+  Beispiele für False Negatives (Gold, aber nicht gefunden):
+    - ca-zertifikat ||| ca certificate
+    - zellenformat ||| format
+    - verbindung zu server ||| connection from server
+    - gentests an tieren ||| genetic testing of laboratory animals
+    - abfallsammelbehälter ||| waste collection containers
+  Modell-Analyse abgeschlossen: Fast_Align (Full)
+Extrahiere Alignments für Gold-Standard-Sätze aus SimAlign/sim_alignments.txt...
+  Lade Alignment-Datei...
+  Alignment-Datei enthält 50000 Zeilen
+Alignments für 100 Gold-Standard-Sätze nach temp_simalign_gold.align geschrieben
+
+--- Analysiere Modell: SimAlign (Gold) ---
+  Quelldatei: ../Corpus/GOLD_MANUAL/gold.de (0.0 MB)
+  Alignment-Datei: temp_simalign_gold.align (0.0 MB)
+  Berechne AER...
+  AER: 0.4465
+  Starte Terminologieextraktion...
+  Starte Phrasenextraktion...
+  Verarbeite 100 Satzpaare...
+  Verwende Mindestfrequenz: 1 (Datensatzgröße: 100)
+    Debug Satz 1:
+      DE: durchführung von filmfestivals
+      EN: conducting of film festivals
+      Alignment: 0-0 1-1 2-2
+      Extrahierte Phrasen (vor Normalisierung): [('durchführung', 'conducting'), ('durchführung von', 'conducting of'), ('durchführung von filmfestivals', 'conducting of film'), ('von', 'of'), ('von filmfestivals', 'of film')]...
+
+    Debug Satz 2:
+      DE: die datei „ % 1 “ kann nicht geöffnet werden , da libarchive sie nicht verarbeiten kann .
+      EN: unable to open the file ' % 1 ' , libarchive can not handle it .
+      Alignment: 0-0 1-4 2-5 3-6 4-7 5-8 6-11 7-12 8-2 10-9 12-10 13-14 15-13 17-15
+      Extrahierte Phrasen (vor Normalisierung): [('die', 'unable'), ('datei', 'file'), ('datei „', "file '"), ('datei „ %', "file ' %"), ('datei „ % 1', "file ' % 1")]...
+
+    Debug Satz 3:
+      DE: rücktransport von patienten
+      EN: repatriation services for patients
+      Alignment: 0-0 1-2 2-3
+      Extrahierte Phrasen (vor Normalisierung): [('rücktransport', 'repatriation'), ('rücktransport von', 'repatriation services for'), ('rücktransport von patienten', 'repatriation services for patients'), ('von', 'for'), ('von patienten', 'for patients')]...
+
+    Fortschritt: 100/100 (100.0%)
+  Extraktion abgeschlossen. Gefundene Phrasenpaare: 1602
+    Beispiele extrahierter Phrasenpaare (nach Normalisierung):
+      durchführung ||| conducting
+      durchführung von ||| conducting of
+      durchführung von filmfestivals ||| conducting of film
+      von ||| of
+      von filmfestivals ||| of film
+  Führe Frequenz-Filterung durch (>= 1)...
+    Frequenz-Verteilung:
+      1392 Terme erscheinen 1x
+      28 Terme erscheinen 2x
+      7 Terme erscheinen 3x
+      1 Terme erscheinen 4x
+      9 Terme erscheinen 5x
+      2 Terme erscheinen 6x
+      2 Terme erscheinen 7x
+      1 Terme erscheinen 9x
+      1 Terme erscheinen 11x
+      2 Terme erscheinen 12x
+      1 Terme erscheinen 14x
+  Nach Filterung (>= 1): 1446 einzigartige Terme
+    Beispiele verbleibender Terme:
+      dienste zu reproduzierung von computerprogrammen ||| services for reproducing computer programs (freq: 1)
+      importiert . ||| extracted . (freq: 1)
+      passwort für den benutzer % ||| password for user % (freq: 1)
+      inhalt der ||| contents of the (freq: 1)
+      industrietechnik ||| engineering (freq: 1)
+  Anzahl extrahierter Terme: 1446
+  Top 20 extrahierte Terme:
+     1. . ||| . (freq: 14)
+     2. von ||| of (freq: 12)
+     3. für ||| for (freq: 12)
+     4. zu ||| for (freq: 11)
+     5. : ||| : (freq: 9)
+     6. ; ||| ; (freq: 7)
+     7. der ||| the (freq: 7)
+     8. % ||| % (freq: 6)
+     9. aus ||| of (freq: 6)
+    10. % 1 ||| % 1 (freq: 5)
+    11. 1 ||| 1 (freq: 5)
+    12. nicht ||| not (freq: 5)
+    13. , ||| , (freq: 5)
+    14. ... ||| ... (freq: 5)
+    15. ) ||| ) (freq: 5)
+    16. und ||| and (freq: 5)
+    17. der ||| of (freq: 5)
+    18. die ||| the (freq: 5)
+    19. ( ||| ( (freq: 4)
+    20. anzahl ||| number (freq: 3)
+  Berechne Terminologie-Metriken...
+  Debug: Terminologie-Evaluation...
+    Anzahl extrahierter Terme: 1446
+    Anzahl Gold-Terme: 86
+    Überschneidungen (True Positives): 27
+    Beispiele für True Positives:
+      benutzer ||| user
+      konservendosen aus metall ||| preserving boxes of metal
+      umwelttechnische überwachung ||| environmental monitoring
+  Terminologie-Evaluation: P=0.0187, R=0.3140, F1=0.0352
+
+  Beispiele für False Positives (Extrahiert, aber nicht Gold):
+    - dienste zu reproduzierung von computerprogrammen ||| services for reproducing computer programs
+    - importiert . ||| extracted .
+    - passwort für den benutzer % ||| password for user %
+    - der monatsansicht ||| month
+    - übernahme ||| guaranteeing
+
+  Beispiele für False Negatives (Gold, aber nicht gefunden):
+    - ca-zertifikat ||| ca certificate
+    - zellenformat ||| format
+    - verbindung zu server ||| connection from server
+    - gentests an tieren ||| genetic testing of laboratory animals
+    - abfallsammelbehälter ||| waste collection containers
+  Modell-Analyse abgeschlossen: SimAlign (Gold)
+
+--- Analysiere Modell: SimAlign (Full) ---
+  Quelldatei: ../Corpus/TEST_DATA/TEST_DATA.de (3.4 MB)
+  Alignment-Datei: SimAlign/sim_alignments.txt (1.7 MB)
+  AER: Nicht verfügbar (nur für Gold-Standard)
+  Starte Terminologieextraktion...
+  Starte Phrasenextraktion...
+  Verarbeite 50000 Satzpaare...
+  Verwende Mindestfrequenz: 2 (Datensatzgröße: 50000)
+    Fortschritt: 2500/50000 (5.0%)
+    Fortschritt: 5000/50000 (10.0%)
+    Fortschritt: 7500/50000 (15.0%)
+    Fortschritt: 10000/50000 (20.0%)
+    Fortschritt: 12500/50000 (25.0%)
+    Fortschritt: 15000/50000 (30.0%)
+    Fortschritt: 17500/50000 (35.0%)
+    Fortschritt: 20000/50000 (40.0%)
+    Fortschritt: 22500/50000 (45.0%)
+    Fortschritt: 25000/50000 (50.0%)
+    Fortschritt: 27500/50000 (55.0%)
+    Fortschritt: 30000/50000 (60.0%)
+    Fortschritt: 32500/50000 (65.0%)
+    Fortschritt: 35000/50000 (70.0%)
+    Fortschritt: 37500/50000 (75.0%)
+    Fortschritt: 40000/50000 (80.0%)
+    Fortschritt: 42500/50000 (85.0%)
+    Fortschritt: 45000/50000 (90.0%)
+    Fortschritt: 47500/50000 (95.0%)
+    Fortschritt: 50000/50000 (100.0%)
+  Extraktion abgeschlossen. Gefundene Phrasenpaare: 1061256
+    Beispiele extrahierter Phrasenpaare (nach Normalisierung):
+      die ||| the
+      die erinnerung ||| the
+      die erinnerung wird ||| the
+      erinnerung wird nach ||| after
+      erinnerung wird nach der ||| after the
+  Führe Frequenz-Filterung durch (>= 2)...
+  Nach Filterung (>= 2): 69668 einzigartige Terme
+    Beispiele verbleibender Terme:
+      eingabetaste ||| pressing (freq: 2)
+      alternative zu ||| alternative to (freq: 3)
+      gleichen ||| same (freq: 29)
+      namen für die ||| name for the (freq: 4)
+      ) ist ein ||| ) is a (freq: 3)
+  Anzahl extrahierter Terme: 69668
+  Top 20 extrahierte Terme:
+     1. . ||| . (freq: 10707)
+     2. für ||| for (freq: 9684)
+     3. von ||| of (freq: 6152)
+     4. und ||| and (freq: 4947)
+     5. die ||| the (freq: 4477)
+     6. , ||| , (freq: 4316)
+     7. & ||| & (freq: 3380)
+     8. ] ||| ] (freq: 3213)
+     9. [ ||| [ (freq: 3212)
+    10. in ||| in (freq: 3050)
+    11. % ||| % (freq: 2887)
+    12. der ||| the (freq: 2815)
+    13. : ||| : (freq: 2719)
+    14. ; ||| ; (freq: 2636)
+    15. zu ||| for (freq: 2636)
+    16. ) ||| ) (freq: 2132)
+    17. ( ||| ( (freq: 2094)
+    18. 1 ||| 1 (freq: 2074)
+    19. % 1 ||| % 1 (freq: 1926)
+    20. aus ||| of (freq: 1851)
+  Berechne Terminologie-Metriken...
+  Debug: Terminologie-Evaluation...
+    Anzahl extrahierter Terme: 69668
+    Anzahl Gold-Terme: 86
+    Überschneidungen (True Positives): 14
+    Beispiele für True Positives:
+      chemische präparate ||| chemical preparations
+      zellenformat ||| format
+      die datei ||| the file
+  Terminologie-Evaluation: P=0.0002, R=0.1628, F1=0.0004
+
+  Beispiele für False Positives (Extrahiert, aber nicht Gold):
+    - alternative zu ||| alternative to
+    - ) ist ein ||| ) is a
+    - , so ||| , so
+    - klang ||| sound
+    - werkzeug , um ||| tool to
+
+  Beispiele für False Negatives (Gold, aber nicht gefunden):
+    - ca-zertifikat ||| ca certificate
+    - verbindung zu server ||| connection from server
+    - gentests an tieren ||| genetic testing of laboratory animals
+    - abfallsammelbehälter ||| waste collection containers
+    - knochen an lebenden objekt ||| in - vivo measurement of bone
+  Modell-Analyse abgeschlossen: SimAlign (Full)
+Extrahiere Alignments für Gold-Standard-Sätze aus bert-base-multilingual-cased/bert_alignments.txt...
+  Lade Alignment-Datei...
+  Alignment-Datei enthält 50000 Zeilen
+Alignments für 100 Gold-Standard-Sätze nach temp_attention_gold.align geschrieben
+
+--- Analysiere Modell: Attention (Gold) ---
+  Quelldatei: ../Corpus/GOLD_MANUAL/gold.de (0.0 MB)
+  Alignment-Datei: temp_attention_gold.align (0.0 MB)
+  Berechne AER...
+  AER: 0.5767
+  Starte Terminologieextraktion...
+  Starte Phrasenextraktion...
+  Verarbeite 100 Satzpaare...
+  Verwende Mindestfrequenz: 1 (Datensatzgröße: 100)
+    Debug Satz 1:
+      DE: durchführung von filmfestivals
+      EN: conducting of film festivals
+      Alignment: 0-0 1-1 2-2 2-3
+      Extrahierte Phrasen (vor Normalisierung): [('durchführung', 'conducting'), ('durchführung von', 'conducting of'), ('durchführung von filmfestivals', 'conducting of film festivals'), ('von', 'of'), ('von filmfestivals', 'of film festivals')]...
+
+    Debug Satz 2:
+      DE: die datei „ % 1 “ kann nicht geöffnet werden , da libarchive sie nicht verarbeiten kann .
+      EN: unable to open the file ' % 1 ' , libarchive can not handle it .
+      Alignment: 17-0 5-1 5-2 2-3 5-4 2-5 3-6 4-7 5-8 17-9 12-10 17-11 17-12 17-13 17-14 17-15
+      Extrahierte Phrasen (vor Normalisierung): [('%', '%'), ('% 1', '% 1'), ('1', '1'), ('geöffnet werden , da libarchive', 'libarchive'), ('werden , da libarchive', 'libarchive')]...
+
+    Debug Satz 3:
+      DE: rücktransport von patienten
+      EN: repatriation services for patients
+      Alignment: 0-0 1-1 1-2 2-3
+      Extrahierte Phrasen (vor Normalisierung): [('rücktransport', 'repatriation'), ('rücktransport von', 'repatriation services for'), ('rücktransport von patienten', 'repatriation services for patients'), ('von', 'services for'), ('von patienten', 'services for patients')]...
+
+    Fortschritt: 100/100 (100.0%)
+  Extraktion abgeschlossen. Gefundene Phrasenpaare: 1096
+    Beispiele extrahierter Phrasenpaare (nach Normalisierung):
+      durchführung ||| conducting
+      durchführung von ||| conducting of
+      durchführung von filmfestivals ||| conducting of film festivals
+      von ||| of
+      von filmfestivals ||| of film festivals
+  Führe Frequenz-Filterung durch (>= 1)...
+    Frequenz-Verteilung:
+      1030 Terme erscheinen 1x
+      9 Terme erscheinen 2x
+      7 Terme erscheinen 3x
+      3 Terme erscheinen 4x
+      1 Terme erscheinen 6x
+      1 Terme erscheinen 9x
+  Nach Filterung (>= 1): 1051 einzigartige Terme
+    Beispiele verbleibender Terme:
+      mineralstoffdetektoren zu messung ||| detectors for the (freq: 1)
+      dienste zu reproduzierung von computerprogrammen ||| services for reproducing computer programs (freq: 1)
+      aktuell ausgewählten ||| nbsp ; nbsp (freq: 1)
+      * ||| * disconnected (freq: 1)
+      1 vollständiger bericht : % ||| . full report : % (freq: 1)
+  Anzahl extrahierter Terme: 1051
+  Top 20 extrahierte Terme:
+     1. von ||| of (freq: 9)
+     2. % ||| % (freq: 6)
+     3. ; ||| ; (freq: 4)
+     4. aus ||| of (freq: 4)
+     5. für ||| for (freq: 4)
+     6. % 1 ||| % 1 (freq: 3)
+     7. 1 ||| 1 (freq: 3)
+     8. ) ||| ) (freq: 3)
+     9. ... ||| ... (freq: 3)
+    10. und ||| and (freq: 3)
+    11. nicht ||| not (freq: 3)
+    12. der ||| of (freq: 3)
+    13. zu ||| for the (freq: 2)
+    14. aus metall ||| of metal (freq: 2)
+    15. metall ||| metal (freq: 2)
+    16. anzahl ||| number (freq: 2)
+    17. ctrl ||| ctrl (freq: 2)
+    18. ctrl ; ||| ctrl ; (freq: 2)
+    19. zu ||| for (freq: 2)
+    20. von ||| for (freq: 2)
+  Berechne Terminologie-Metriken...
+  Debug: Terminologie-Evaluation...
+    Anzahl extrahierter Terme: 1051
+    Anzahl Gold-Terme: 86
+    Überschneidungen (True Positives): 37
+    Beispiele für True Positives:
+      gentests an tieren ||| genetic testing of laboratory animals
+      abfallsammelbehälter ||| waste collection containers
+      konservendosen aus metall ||| preserving boxes of metal
+  Terminologie-Evaluation: P=0.0352, R=0.4302, F1=0.0651
+
+  Beispiele für False Positives (Extrahiert, aber nicht Gold):
+    - mineralstoffdetektoren zu messung ||| detectors for the
+    - dienste zu reproduzierung von computerprogrammen ||| services for reproducing computer programs
+    - aktuell ausgewählten ||| nbsp ; nbsp
+    - wird die anzahl der ||| number
+    - erzwingen : ||| force user :
+
+  Beispiele für False Negatives (Gold, aber nicht gefunden):
+    - ca-zertifikat ||| ca certificate
+    - zellenformat ||| format
+    - verbindung zu server ||| connection from server
+    - benutzer ||| user
+    - knochen an lebenden objekt ||| in - vivo measurement of bone
+  Modell-Analyse abgeschlossen: Attention (Gold)
+
+--- Analysiere Modell: Attention (Full) ---
+  Quelldatei: ../Corpus/TEST_DATA/TEST_DATA.de (3.4 MB)
+  Alignment-Datei: bert-base-multilingual-cased/bert_alignments.txt (2.7 MB)
+  AER: Nicht verfügbar (nur für Gold-Standard)
+  Starte Terminologieextraktion...
+  Starte Phrasenextraktion...
+  Verarbeite 50000 Satzpaare...
+  Verwende Mindestfrequenz: 2 (Datensatzgröße: 50000)
+    Fortschritt: 2500/50000 (5.0%)
+    Fortschritt: 5000/50000 (10.0%)
+    Fortschritt: 7500/50000 (15.0%)
+    Fortschritt: 10000/50000 (20.0%)
+    Fortschritt: 12500/50000 (25.0%)
+    Fortschritt: 15000/50000 (30.0%)
+    Fortschritt: 17500/50000 (35.0%)
+    Fortschritt: 20000/50000 (40.0%)
+    Fortschritt: 22500/50000 (45.0%)
+    Fortschritt: 25000/50000 (50.0%)
+    Fortschritt: 27500/50000 (55.0%)
+    Fortschritt: 30000/50000 (60.0%)
+    Fortschritt: 32500/50000 (65.0%)
+    Fortschritt: 35000/50000 (70.0%)
+    Fortschritt: 37500/50000 (75.0%)
+    Fortschritt: 40000/50000 (80.0%)
+    Fortschritt: 42500/50000 (85.0%)
+    Fortschritt: 45000/50000 (90.0%)
+    Fortschritt: 47500/50000 (95.0%)
+    Fortschritt: 50000/50000 (100.0%)
+  Extraktion abgeschlossen. Gefundene Phrasenpaare: 656742
+    Beispiele extrahierter Phrasenpaare (nach Normalisierung):
+      , ausgehend von der aktuellen ||| the specified
+      ausgehend von der aktuellen ||| the specified
+      ausgehend von der aktuellen uhrzeit.@info ||| the specified time
+      von der aktuellen ||| the specified
+      von der aktuellen uhrzeit.@info ||| the specified time
+  Führe Frequenz-Filterung durch (>= 2)...
+  Nach Filterung (>= 2): 37847 einzigartige Terme
+    Beispiele verbleibender Terme:
+      nicht gefunden werden . ||| found . (freq: 2)
+      gleichen ||| same (freq: 8)
+      ) image / info ||| ) (freq: 2)
+      , so ||| , so (freq: 2)
+      zurverfügungstellen von informationen bezüglich der ||| providing information relating to (freq: 2)
+  Anzahl extrahierter Terme: 37847
+  Top 20 extrahierte Terme:
+     1. von ||| of (freq: 3373)
+     2. für ||| for (freq: 2759)
+     3. % ||| % (freq: 2030)
+     4. und ||| and (freq: 1748)
+     5. & ||| & (freq: 1718)
+     6. 1 ||| 1 (freq: 1498)
+     7. % 1 ||| % 1 (freq: 1296)
+     8. , ||| , (freq: 1222)
+     9. aus ||| of (freq: 1202)
+    10. zu ||| for (freq: 978)
+    11. : ||| : (freq: 964)
+    12. . ||| . (freq: 946)
+    13. ; ||| ; (freq: 926)
+    14. metall ||| metal (freq: 736)
+    15. in ||| in (freq: 708)
+    16. aus metall ||| of metal (freq: 625)
+    17. oder ||| or (freq: 544)
+    18. ... ||| ... (freq: 538)
+    19. [ ||| [ (freq: 512)
+    20. der ||| the (freq: 510)
+  Berechne Terminologie-Metriken...
+  Debug: Terminologie-Evaluation...
+    Anzahl extrahierter Terme: 37847
+    Anzahl Gold-Terme: 86
+    Überschneidungen (True Positives): 9
+    Beispiele für True Positives:
+      chemische präparate ||| chemical preparations
+      die datei ||| the file
+      lektion ||| lecture
+  Terminologie-Evaluation: P=0.0002, R=0.1047, F1=0.0005
+
+  Beispiele für False Positives (Extrahiert, aber nicht Gold):
+    - nicht gefunden werden . ||| found .
+    - gleichen ||| same
+    - ) image / info ||| )
+    - , so ||| , so
+    - zurverfügungstellen von informationen bezüglich der ||| providing information relating to
+
+  Beispiele für False Negatives (Gold, aber nicht gefunden):
+    - zellenformat ||| format
+    - verbindung zu server ||| connection from server
+    - milchbrei ||| gruel
+    - stecker für elektrische kabel ||| male connectors for electrical cables
+    - standardidentität ||| identity default
+  Modell-Analyse abgeschlossen: Attention (Full)
+
+============================================================
+      ZUSAMMENFASSUNG DER ERGEBNISSE
+============================================================
+| Model             | Evaluation_Type   |    AER |   Precision |   Recall |   F1-Score |   Extracted_Count |   TP |    FP |   FN |
+|:------------------|:------------------|-------:|------------:|---------:|-----------:|------------------:|-----:|------:|-----:|
+| Fast_Align (Gold) | Gold              | 0.4275 |      0.0541 |   0.5698 |     0.0988 |               906 |   49 |   857 |   37 |
+| Fast_Align (Full) | Full              | 0      |      0.0003 |   0.1512 |     0.0006 |             41691 |   13 | 41678 |   73 |
+| SimAlign (Gold)   | Gold              | 0.4465 |      0.0187 |   0.314  |     0.0352 |              1446 |   27 |  1419 |   59 |
+| SimAlign (Full)   | Full              | 0      |      0.0002 |   0.1628 |     0.0004 |             69668 |   14 | 69654 |   72 |
+| Attention (Gold)  | Gold              | 0.5767 |      0.0352 |   0.4302 |     0.0651 |              1051 |   37 |  1014 |   49 |
+| Attention (Full)  | Full              | 0      |      0.0002 |   0.1047 |     0.0005 |             37847 |    9 | 37838 |   77 |
+
+============================================================
+      VERGLEICHSANALYSE
+============================================================
+
+Gold-Standard-Evaluation (mit AER):
+| Model             |    AER |   Precision |   Recall |   F1-Score |   Extracted_Count |
+|:------------------|-------:|------------:|---------:|-----------:|------------------:|
+| Fast_Align (Gold) | 0.4275 |      0.0541 |   0.5698 |     0.0988 |               906 |
+| SimAlign (Gold)   | 0.4465 |      0.0187 |   0.314  |     0.0352 |              1446 |
+| Attention (Gold)  | 0.5767 |      0.0352 |   0.4302 |     0.0651 |              1051 |
+
+Vollständige Test-Daten-Evaluation:
+| Model             |   Precision |   Recall |   F1-Score |   Extracted_Count |
+|:------------------|------------:|---------:|-----------:|------------------:|
+| Fast_Align (Full) |      0.0003 |   0.1512 |     0.0006 |             41691 |
+| SimAlign (Full)   |      0.0002 |   0.1628 |     0.0004 |             69668 |
+| Attention (Full)  |      0.0002 |   0.1047 |     0.0005 |             37847 |
+Temporäre Datei entfernt: temp_fast_align_gold.align
+Temporäre Datei entfernt: temp_simalign_gold.align
+Temporäre Datei entfernt: temp_attention_gold.align
+
+============================================================
+      ANALYSE ABGESCHLOSSEN
+============================================================
+📝 Vollständiger Log gespeichert in: logs/pipeline_analysis_20250714_123601.log
+   Verwenden Sie diese Datei zur späteren Überprüfung der Ergebnisse.
+============================================================

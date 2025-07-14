@@ -536,6 +536,18 @@ def analyze_model(model_name, source_file, target_file, model_align_file, gold_a
     extracted_terms, term_counts = run_extraction_pipeline(source_file, target_file, model_align_file)
     log_print(f"  Anzahl extrahierter Terme: {len(extracted_terms)}")
 
+    # 2.1. Top 20 extrahierte Terme mit Frequenz
+    log_print("  Top 20 extrahierte Terme:")
+    # Sortiere nach Frequenz (absteigend) und nimm die ersten 20
+    top_20_terms = term_counts.most_common(20)
+    for i, (term_pair, freq) in enumerate(top_20_terms, 1):
+        log_print(f"    {i:2d}. {term_pair[0]} ||| {term_pair[1]} (freq: {freq})")
+    
+    if len(top_20_terms) == 0:
+        log_print("    Keine Terme extrahiert.")
+    elif len(top_20_terms) < 20:
+        log_print(f"    Hinweis: Nur {len(top_20_terms)} Terme verfügbar.")
+
     # 3. Extrinsische Evaluation (P/R/F1) - nur wenn Gold-Terminologie verfügbar
     if gold_terms_set:
         log_print("  Berechne Terminologie-Metriken...")
