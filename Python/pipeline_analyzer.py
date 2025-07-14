@@ -2,22 +2,67 @@ import spacy
 from collections import Counter, defaultdict
 import pandas as pd
 from functools import lru_cache
+import logging
+import sys
+from datetime import datetime
+import os
 
 # --- Konfiguration ---
 MIN_FREQUENCY_SMALL = 1  # For small datasets (≤1000 sentences)
 MIN_FREQUENCY_LARGE = 2  # For large datasets (>1000 sentences)
 MAX_PHRASE_LEN = 5 # Maximum length of extracted terms
-DEVELOPMENT_MODE = True  # Set to True to process only first 5000 sentences for testing
+DEVELOPMENT_MODE = False  # Set to True to process only first 5000 sentences for testing
 MAX_SENTENCES_DEV = 5000  # Number of sentences to process in development mode
+
+# --- Logging Setup ---
+def setup_logging():
+    """Set up logging to both file and console with timestamp."""
+    # Create logs directory if it doesn't exist
+    log_dir = "logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    # Create timestamp for log filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"{log_dir}/pipeline_analysis_{timestamp}.log"
+    
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(message)s',
+        handlers=[
+            logging.FileHandler(log_filename, encoding='utf-8'),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"Logging initialized. Log file: {log_filename}")
+    return logger, log_filename
+
+# Initialize logger
+logger, log_file = setup_logging()
+
+# --- Helper function to log and print ---
+def log_print(message, level="info"):
+    """Log message and print to console."""
+    if level == "info":
+        logger.info(message)
+    elif level == "warning":
+        logger.warning(message)
+    elif level == "error":
+        logger.error(message)
+    elif level == "debug":
+        logger.debug(message)
 
 # Laden der spaCy Modelle für Lemmatisierung
 try:
     nlp_de = spacy.load('de_core_news_sm', disable=['parser', 'ner'])
     nlp_en = spacy.load('en_core_web_sm', disable=['parser', 'ner'])
 except OSError:
-    print("Fehler: spaCy-Modelle nicht gefunden. Bitte führen Sie aus:")
-    print("python -m spacy download de_core_news_sm")
-    print("python -m spacy download en_core_web_sm")
+    log_print("Fehler: spaCy-Modelle nicht gefunden. Bitte führen Sie aus:", "error")
+    log_print("python -m spacy download de_core_news_sm", "error")
+    log_print("python -m spacy download en_core_web_sm", "error")
     exit()
 
 # --- Optimierte Hilfsfunktionen ---
@@ -67,10 +112,10 @@ def find_gold_sentences_in_testdata(gold_src_file, gold_trg_file, test_src_file,
     Returns:
         dict: Mapping von Gold-Index zu Test-Index (0-based)
     """
-    print("Suche Gold-Standard-Sätze in Test-Daten...")
+    log_print("Suche Gold-Standard-Sätze in Test-Daten...")
     
     # Lade Gold-Standard-Sätze
-    print("  Lade Gold-Standard-Sätze...")
+    log_print("  Lade Gold-Standard-Sätze...")
     with open(gold_src_file, 'r', encoding='utf-8') as f:
         gold_src_lines = [line.strip() for line in f.readlines()]
     
@@ -78,21 +123,21 @@ def find_gold_sentences_in_testdata(gold_src_file, gold_trg_file, test_src_file,
         gold_trg_lines = [line.strip() for line in f.readlines()]
     
     # Lade Test-Daten
-    print("  Lade Test-Daten...")
+    log_print("  Lade Test-Daten...")
     with open(test_src_file, 'r', encoding='utf-8') as f:
         test_src_lines = [line.strip() for line in f.readlines()]
     
     with open(test_trg_file, 'r', encoding='utf-8') as f:
         test_trg_lines = [line.strip() for line in f.readlines()]
     
-    print(f"  Durchsuche {len(test_src_lines)} Test-Sätze...")
+    log_print(f"  Durchsuche {len(test_src_lines)} Test-Sätze...")
     
     # Erstelle Mapping
     gold_to_test_mapping = {}
     
     for gold_idx, (gold_src, gold_trg) in enumerate(zip(gold_src_lines, gold_trg_lines)):
         if gold_idx % 10 == 0:
-            print(f"    Verarbeite Gold-Satz {gold_idx + 1}/{len(gold_src_lines)}")
+            log_print(f"    Verarbeite Gold-Satz {gold_idx + 1}/{len(gold_src_lines)}")
         
         # Suche nach exakter Übereinstimmung in Test-Daten
         for test_idx, (test_src, test_trg) in enumerate(zip(test_src_lines, test_trg_lines)):
@@ -100,16 +145,16 @@ def find_gold_sentences_in_testdata(gold_src_file, gold_trg_file, test_src_file,
                 gold_to_test_mapping[gold_idx] = test_idx
                 break
     
-    print(f"Gefunden: {len(gold_to_test_mapping)} von {len(gold_src_lines)} Gold-Standard-Sätzen in Test-Daten")
+    log_print(f"Gefunden: {len(gold_to_test_mapping)} von {len(gold_src_lines)} Gold-Standard-Sätzen in Test-Daten")
     
     if len(gold_to_test_mapping) != len(gold_src_lines):
         missing_count = len(gold_src_lines) - len(gold_to_test_mapping)
-        print(f"WARNUNG: {missing_count} Gold-Standard-Sätze wurden nicht in den Test-Daten gefunden!")
+        log_print(f"WARNUNG: {missing_count} Gold-Standard-Sätze wurden nicht in den Test-Daten gefunden!", "warning")
         
         # Zeige erste 5 fehlende Sätze
         for gold_idx in range(min(5, len(gold_src_lines))):
             if gold_idx not in gold_to_test_mapping:
-                print(f"  Fehlend (Gold {gold_idx}): {gold_src_lines[gold_idx][:50]}...")
+                log_print(f"  Fehlend (Gold {gold_idx}): {gold_src_lines[gold_idx][:50]}...", "warning")
     
     return gold_to_test_mapping
 
@@ -126,14 +171,14 @@ def extract_alignments_for_gold_sentences(model_align_file, gold_to_test_mapping
     Returns:
         str: Pfad zur erstellten Ausgabedatei
     """
-    print(f"Extrahiere Alignments für Gold-Standard-Sätze aus {model_align_file}...")
+    log_print(f"Extrahiere Alignments für Gold-Standard-Sätze aus {model_align_file}...")
     
     # Lade alle Alignments
-    print("  Lade Alignment-Datei...")
+    log_print("  Lade Alignment-Datei...")
     with open(model_align_file, 'r', encoding='utf-8') as f:
         all_alignments = [line.strip() for line in f.readlines()]
     
-    print(f"  Alignment-Datei enthält {len(all_alignments)} Zeilen")
+    log_print(f"  Alignment-Datei enthält {len(all_alignments)} Zeilen")
     
     # Extrahiere Alignments für Gold-Standard-Sätze
     gold_alignments = []
@@ -143,7 +188,7 @@ def extract_alignments_for_gold_sentences(model_align_file, gold_to_test_mapping
         if test_idx < len(all_alignments):
             gold_alignments.append(all_alignments[test_idx])
         else:
-            print(f"WARNUNG: Test-Index {test_idx} außerhalb des Bereichs für Gold-Index {gold_idx}")
+            log_print(f"WARNUNG: Test-Index {test_idx} außerhalb des Bereichs für Gold-Index {gold_idx}", "warning")
             gold_alignments.append("")  # Leeres Alignment als Fallback
     
     # Schreibe extrahierte Alignments
@@ -151,7 +196,7 @@ def extract_alignments_for_gold_sentences(model_align_file, gold_to_test_mapping
         for alignment in gold_alignments:
             f.write(alignment + '\n')
     
-    print(f"Alignments für {len(gold_alignments)} Gold-Standard-Sätze nach {output_file} geschrieben")
+    log_print(f"Alignments für {len(gold_alignments)} Gold-Standard-Sätze nach {output_file} geschrieben")
     return output_file
 
 
@@ -169,7 +214,7 @@ def parse_alignment(alignment_line):
 
 def load_gold_terminology(filepath):
     """Lädt die manuelle Gold-Terminologieliste mit minimaler Normalisierung."""
-    print("  Lade und normalisiere Gold-Terminologie...")
+    log_print("  Lade und normalisiere Gold-Terminologie...")
     gold_terms = set()
     
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -190,10 +235,10 @@ def load_gold_terminology(filepath):
         normalized_trg = normalize_batch(trg_texts, 'en')
         
         # Debug: Zeige erste paar Beispiele
-        print(f"    Beispiele der Gold-Terminologie-Normalisierung:")
+        log_print(f"    Beispiele der Gold-Terminologie-Normalisierung:")
         for i in range(min(3, len(src_texts))):
-            print(f"      DE: '{src_texts[i]}' -> '{normalized_src[i]}'")
-            print(f"      EN: '{trg_texts[i]}' -> '{normalized_trg[i]}'")
+            log_print(f"      DE: '{src_texts[i]}' -> '{normalized_src[i]}'")
+            log_print(f"      EN: '{trg_texts[i]}' -> '{normalized_trg[i]}'")
         
         for norm_src, norm_trg in zip(normalized_src, normalized_trg):
             if norm_src and norm_trg:
@@ -217,7 +262,7 @@ def calculate_aer(model_align_file, gold_align_file):
             gold_S.append(parse_alignment(line_gold))
 
     if len(model_A) != len(gold_S):
-        print(f"Warnung: {model_align_file} und {gold_align_file} haben unterschiedliche Zeilenanzahlen.")
+        log_print(f"Warnung: {model_align_file} und {gold_align_file} haben unterschiedliche Zeilenanzahlen.", "warning")
         return None
 
     total_A = 0
@@ -241,30 +286,30 @@ def calculate_aer(model_align_file, gold_align_file):
 def evaluate_terminology(extracted_terms_set, gold_terms_set):
     """Berechnet Precision, Recall und F1-Score mit Debug-Ausgabe."""
     
-    print("  Debug: Terminologie-Evaluation...")
-    print(f"    Anzahl extrahierter Terme: {len(extracted_terms_set)}")
-    print(f"    Anzahl Gold-Terme: {len(gold_terms_set)}")
+    log_print("  Debug: Terminologie-Evaluation...")
+    log_print(f"    Anzahl extrahierter Terme: {len(extracted_terms_set)}")
+    log_print(f"    Anzahl Gold-Terme: {len(gold_terms_set)}")
     
     # Finde Überschneidungen
     intersection = extracted_terms_set.intersection(gold_terms_set)
-    print(f"    Überschneidungen (True Positives): {len(intersection)}")
+    log_print(f"    Überschneidungen (True Positives): {len(intersection)}")
     
     # Zeige erste paar Überschneidungen
     if intersection:
-        print("    Beispiele für True Positives:")
+        log_print("    Beispiele für True Positives:")
         for i, pair in enumerate(list(intersection)[:3]):
-            print(f"      {pair[0]} ||| {pair[1]}")
+            log_print(f"      {pair[0]} ||| {pair[1]}")
     else:
-        print("    ❌ Keine Überschneidungen gefunden!")
+        log_print("    ❌ Keine Überschneidungen gefunden!")
         
         # Debug: Zeige erste paar Terme aus beiden Sets
-        print("    Erste paar extrahierte Terme:")
+        log_print("    Erste paar extrahierte Terme:")
         for i, pair in enumerate(list(extracted_terms_set)[:3]):
-            print(f"      {pair[0]} ||| {pair[1]}")
+            log_print(f"      {pair[0]} ||| {pair[1]}")
         
-        print("    Erste paar Gold-Terme:")
+        log_print("    Erste paar Gold-Terme:")
         for i, pair in enumerate(list(gold_terms_set)[:3]):
-            print(f"      {pair[0]} ||| {pair[1]}")
+            log_print(f"      {pair[0]} ||| {pair[1]}")
     
     TP = len(intersection)
     FP = len(extracted_terms_set - gold_terms_set)
@@ -339,7 +384,7 @@ def extract_consistent_phrases(src_tokens, trg_tokens, alignment_set):
 
 def run_extraction_pipeline(source_file, target_file, alignment_file):
     """Optimierte Extraktion und Filterung."""
-    print("  Starte Phrasenextraktion...")
+    log_print("  Starte Phrasenextraktion...")
     all_extracted_pairs = []
     
     # Zähle Zeilen für Fortschrittsanzeige
@@ -349,13 +394,13 @@ def run_extraction_pipeline(source_file, target_file, alignment_file):
     # Development mode: process only subset
     if DEVELOPMENT_MODE and total_lines > MAX_SENTENCES_DEV:
         total_lines = MAX_SENTENCES_DEV
-        print(f"  DEVELOPMENT MODE: Verarbeite nur erste {total_lines} Satzpaare")
+        log_print(f"  DEVELOPMENT MODE: Verarbeite nur erste {total_lines} Satzpaare")
     
-    print(f"  Verarbeite {total_lines} Satzpaare...")
+    log_print(f"  Verarbeite {total_lines} Satzpaare...")
     
     # Adaptive Frequenz-Schwelle basierend auf Datensatzgröße
     min_freq = MIN_FREQUENCY_SMALL if total_lines <= 1000 else MIN_FREQUENCY_LARGE
-    print(f"  Verwende Mindestfrequenz: {min_freq} (Datensatzgröße: {total_lines})")
+    log_print(f"  Verwende Mindestfrequenz: {min_freq} (Datensatzgröße: {total_lines})")
     
     # Batch-Verarbeitung für bessere Performance
     batch_size = 500
@@ -377,17 +422,17 @@ def run_extraction_pipeline(source_file, target_file, alignment_file):
 
             # Debug: Show first few alignments for gold standard
             if total_lines <= 100 and line_idx < 3:  # Reduced to 3 for less noise
-                print(f"    Debug Satz {line_idx + 1}:")
-                print(f"      DE: {src_line.strip()}")
-                print(f"      EN: {trg_line.strip()}")
-                print(f"      Alignment: {align_line.strip()}")
+                log_print(f"    Debug Satz {line_idx + 1}:")
+                log_print(f"      DE: {src_line.strip()}")
+                log_print(f"      EN: {trg_line.strip()}")
+                log_print(f"      Alignment: {align_line.strip()}")
 
             phrases = extract_consistent_phrases(src_tokens, trg_tokens, align_set)
             
             # Debug: Show extracted phrases for first few sentences
             if total_lines <= 100 and line_idx < 3:
-                print(f"      Extrahierte Phrasen (vor Normalisierung): {phrases[:5]}...")  # Limit output
-                print()
+                log_print(f"      Extrahierte Phrasen (vor Normalisierung): {phrases[:5]}...")  # Limit output
+                log_print("")
             
             current_batch.extend(phrases)
             processed += 1
@@ -413,45 +458,45 @@ def run_extraction_pipeline(source_file, target_file, alignment_file):
                 # Fortschrittsanzeige weniger häufig
                 if processed % 2500 == 0 or processed == total_lines:
                     progress = processed / total_lines * 100
-                    print(f"    Fortschritt: {processed}/{total_lines} ({progress:.1f}%)")
+                    log_print(f"    Fortschritt: {processed}/{total_lines} ({progress:.1f}%)")
 
-    print(f"  Extraktion abgeschlossen. Gefundene Phrasenpaare: {len(all_extracted_pairs)}")
+    log_print(f"  Extraktion abgeschlossen. Gefundene Phrasenpaare: {len(all_extracted_pairs)}")
     
     # Debug: Zeige erste paar extrahierte Paare
     if all_extracted_pairs:
-        print(f"    Beispiele extrahierter Phrasenpaare (nach Normalisierung):")
+        log_print(f"    Beispiele extrahierter Phrasenpaare (nach Normalisierung):")
         for i in range(min(5, len(all_extracted_pairs))):
             pair = all_extracted_pairs[i]
-            print(f"      {pair[0]} ||| {pair[1]}")
+            log_print(f"      {pair[0]} ||| {pair[1]}")
     
     # Frequenz-Filterung mit adaptiver Schwelle
-    print(f"  Führe Frequenz-Filterung durch (>= {min_freq})...")
+    log_print(f"  Führe Frequenz-Filterung durch (>= {min_freq})...")
     pair_counts = Counter(all_extracted_pairs)
     
     # Debug: Zeige Frequenz-Statistiken
     if total_lines <= 100:  # Nur für kleine Datensätze (Gold)
-        print(f"    Frequenz-Verteilung:")
+        log_print(f"    Frequenz-Verteilung:")
         freq_dist = Counter(pair_counts.values())
         for freq, count in sorted(freq_dist.items()):
-            print(f"      {count} Terme erscheinen {freq}x")
+            log_print(f"      {count} Terme erscheinen {freq}x")
         
         # Zeige Beispiele von gefilterten Termen
         filtered_out = {pair: count for pair, count in pair_counts.items() if count < min_freq}
         if filtered_out:
-            print(f"    Beispiele gefilterter Terme (< {min_freq}):")
+            log_print(f"    Beispiele gefilterter Terme (< {min_freq}):")
             for i, (pair, count) in enumerate(list(filtered_out.items())[:5]):
-                print(f"      {pair[0]} ||| {pair[1]} (freq: {count})")
+                log_print(f"      {pair[0]} ||| {pair[1]} (freq: {count})")
     
     final_term_set = {pair for pair, count in pair_counts.items() if count >= min_freq}
     
-    print(f"  Nach Filterung (>= {min_freq}): {len(final_term_set)} einzigartige Terme")
+    log_print(f"  Nach Filterung (>= {min_freq}): {len(final_term_set)} einzigartige Terme")
     
     # Debug: Zeige erste paar gefilterte Terme
     if final_term_set:
-        print(f"    Beispiele verbleibender Terme:")
+        log_print(f"    Beispiele verbleibender Terme:")
         for i, pair in enumerate(list(final_term_set)[:5]):
             freq = pair_counts[pair]
-            print(f"      {pair[0]} ||| {pair[1]} (freq: {freq})")
+            log_print(f"      {pair[0]} ||| {pair[1]} (freq: {freq})")
     
     return final_term_set, pair_counts
 
@@ -465,52 +510,52 @@ def analyze_model(model_name, source_file, target_file, model_align_file, gold_a
     Args:
         evaluation_type: "Gold" für Gold-Standard-Evaluation, "Full" für vollständige Test-Daten
     """
-    print(f"\n--- Analysiere Modell: {model_name} ({evaluation_type}) ---")
+    log_print(f"\n--- Analysiere Modell: {model_name} ({evaluation_type}) ---")
     
     # Zeige Dateigröße für bessere Einschätzung
     import os
     if os.path.exists(source_file):
         file_size = os.path.getsize(source_file) / (1024 * 1024)  # MB
-        print(f"  Quelldatei: {source_file} ({file_size:.1f} MB)")
+        log_print(f"  Quelldatei: {source_file} ({file_size:.1f} MB)")
     
     if os.path.exists(model_align_file):
         align_size = os.path.getsize(model_align_file) / (1024 * 1024)  # MB
-        print(f"  Alignment-Datei: {model_align_file} ({align_size:.1f} MB)")
+        log_print(f"  Alignment-Datei: {model_align_file} ({align_size:.1f} MB)")
 
     # 1. Intrinsische Evaluation (AER) - nur für Gold-Standard verfügbar
     if evaluation_type == "Gold":
-        print("  Berechne AER...")
+        log_print("  Berechne AER...")
         aer = calculate_aer(model_align_file, gold_align_file)
-        print(f"  AER: {aer:.4f}")
+        log_print(f"  AER: {aer:.4f}")
     else:
         aer = None
-        print("  AER: Nicht verfügbar (nur für Gold-Standard)")
+        log_print("  AER: Nicht verfügbar (nur für Gold-Standard)")
 
     # 2. Terminologieextraktion
-    print("  Starte Terminologieextraktion...")
+    log_print("  Starte Terminologieextraktion...")
     extracted_terms, term_counts = run_extraction_pipeline(source_file, target_file, model_align_file)
-    print(f"  Anzahl extrahierter Terme: {len(extracted_terms)}")
+    log_print(f"  Anzahl extrahierter Terme: {len(extracted_terms)}")
 
     # 3. Extrinsische Evaluation (P/R/F1) - nur wenn Gold-Terminologie verfügbar
     if gold_terms_set:
-        print("  Berechne Terminologie-Metriken...")
+        log_print("  Berechne Terminologie-Metriken...")
         metrics = evaluate_terminology(extracted_terms, gold_terms_set)
-        print(f"  Terminologie-Evaluation: P={metrics['Precision']:.4f}, R={metrics['Recall']:.4f}, F1={metrics['F1-Score']:.4f}")
+        log_print(f"  Terminologie-Evaluation: P={metrics['Precision']:.4f}, R={metrics['Recall']:.4f}, F1={metrics['F1-Score']:.4f}")
         
         # Qualitative Analyse (Beispiele)
         false_positives = list(extracted_terms - gold_terms_set)[:5]
         false_negatives = list(gold_terms_set - extracted_terms)[:5]
         
-        print("\n  Beispiele für False Positives (Extrahiert, aber nicht Gold):")
+        log_print("\n  Beispiele für False Positives (Extrahiert, aber nicht Gold):")
         for fp in false_positives:
-            print(f"    - {fp[0]} ||| {fp[1]}")
+            log_print(f"    - {fp[0]} ||| {fp[1]}")
 
-        print("\n  Beispiele für False Negatives (Gold, aber nicht gefunden):")
+        log_print("\n  Beispiele für False Negatives (Gold, aber nicht gefunden):")
         for fn in false_negatives:
-            print(f"    - {fn[0]} ||| {fn[1]}")
+            log_print(f"    - {fn[0]} ||| {fn[1]}")
     else:
         metrics = {"Precision": 0, "Recall": 0, "F1-Score": 0, "TP": 0, "FP": 0, "FN": 0}
-        print("  Terminologie-Evaluation: Nicht verfügbar (Gold-Terminologie nicht geladen)")
+        log_print("  Terminologie-Evaluation: Nicht verfügbar (Gold-Terminologie nicht geladen)")
 
     # Sammeln der Ergebnisse für die finale Tabelle
     results = {
@@ -526,30 +571,32 @@ def analyze_model(model_name, source_file, target_file, model_align_file, gold_a
         'FN': metrics['FN']
     }
     
-    print(f"  Modell-Analyse abgeschlossen: {model_name} ({evaluation_type})")
+    log_print(f"  Modell-Analyse abgeschlossen: {model_name} ({evaluation_type})")
     return results
 
 # --- Main Execution ---
 if __name__ == "__main__":
     
-    print("="*60)
-    print("PERFORMANCE-OPTIMIERTE PIPELINE ANALYZER")
-    print("="*60)
+    log_print("="*60)
+    log_print("PERFORMANCE-OPTIMIERTE PIPELINE ANALYZER")
+    log_print("="*60)
+    log_print(f"📝 Log-Datei: {log_file}")
+    log_print("")
     
     if DEVELOPMENT_MODE:
-        print(f"⚠️  DEVELOPMENT MODE AKTIV: Verarbeite nur erste {MAX_SENTENCES_DEV} Sätze")
-        print("   Setze DEVELOPMENT_MODE = False für vollständige Verarbeitung")
-        print("")
+        log_print(f"⚠️  DEVELOPMENT MODE AKTIV: Verarbeite nur erste {MAX_SENTENCES_DEV} Sätze")
+        log_print("   Setze DEVELOPMENT_MODE = False für vollständige Verarbeitung")
+        log_print("")
     
-    print("🚀 Optimierungen aktiv:")
-    print("   • Minimale Normalisierung (behält Pluralformen bei)")
-    print("   • Adaptive Frequenz-Filterung (1 für kleine, 2 für große Datensätze)")
-    print("   • Batch-Verarbeitung für bessere Performance")
-    print("   • Cached Normalization für wiederholte Phrasen")
-    print("   • Optimierte Phrase-Extraktion mit früher Terminierung")
-    print("   • Reduzierte Fortschrittsanzeige (alle 2500 Sätze)")
-    print("   • Effiziente Datenstrukturen für Alignment-Lookups")
-    print("")
+    log_print("🚀 Optimierungen aktiv:")
+    log_print("   • Minimale Normalisierung (behält Pluralformen bei)")
+    log_print("   • Adaptive Frequenz-Filterung (1 für kleine, 2 für große Datensätze)")
+    log_print("   • Batch-Verarbeitung für bessere Performance")
+    log_print("   • Cached Normalization für wiederholte Phrasen")
+    log_print("   • Optimierte Phrase-Extraktion mit früher Terminierung")
+    log_print("   • Reduzierte Fortschrittsanzeige (alle 2500 Sätze)")
+    log_print("   • Effiziente Datenstrukturen für Alignment-Lookups")
+    log_print("")
     
     # Dateipfade
     # Test-Daten (50,000 Sätze)
@@ -563,9 +610,9 @@ if __name__ == "__main__":
     GOLD_TERMS_FILE = '../Corpus/GOLD_MANUAL/gold.terminology.txt'
 
     # 1. Lade Goldstandard-Terminologie
-    print("Lade Gold-Terminologie...")
+    log_print("Lade Gold-Terminologie...")
     gold_terms = load_gold_terminology(GOLD_TERMS_FILE)
-    print(f"Anzahl einzigartiger Gold-Terme: {len(gold_terms)}")
+    log_print(f"Anzahl einzigartiger Gold-Terme: {len(gold_terms)}")
 
     # 2. Finde Gold-Standard-Sätze in Test-Daten
     gold_to_test_mapping = find_gold_sentences_in_testdata(GOLD_SRC, GOLD_TRG, TEST_SRC, TEST_TRG)
@@ -611,41 +658,41 @@ if __name__ == "__main__":
             all_results.append(results_full)
             
         except FileNotFoundError as e:
-            print(f"\nFEHLER: Datei nicht gefunden für Modell {model_name}: {e}")
+            log_print(f"\nFEHLER: Datei nicht gefunden für Modell {model_name}: {e}", "error")
         except Exception as e:
-            print(f"\nFEHLER bei Modell {model_name}: {e}")
+            log_print(f"\nFEHLER bei Modell {model_name}: {e}", "error")
 
     # 5. Ergebnisse präsentieren
     if all_results:
-        print("\n" + "="*60)
-        print("      ZUSAMMENFASSUNG DER ERGEBNISSE")
-        print("="*60)
+        log_print("\n" + "="*60)
+        log_print("      ZUSAMMENFASSUNG DER ERGEBNISSE")
+        log_print("="*60)
         
         df = pd.DataFrame(all_results)
         # Wähle die relevanten Spalten für die finale Tabelle aus
         summary_df = df[['Model', 'Evaluation_Type', 'AER', 'Precision', 'Recall', 'F1-Score', 'Extracted_Count', 'TP', 'FP', 'FN']]
         summary_df = summary_df.round(4)
         
-        print(summary_df.to_markdown(index=False))
+        log_print(summary_df.to_markdown(index=False))
         
         # Zusätzliche Analysen
-        print("\n" + "="*60)
-        print("      VERGLEICHSANALYSE")
-        print("="*60)
+        log_print("\n" + "="*60)
+        log_print("      VERGLEICHSANALYSE")
+        log_print("="*60)
         
         # Gruppiere nach Modell für Vergleich
         gold_results = df[df['Evaluation_Type'] == 'Gold'].copy()
         full_results = df[df['Evaluation_Type'] == 'Full'].copy()
         
         if len(gold_results) > 0:
-            print("\nGold-Standard-Evaluation (mit AER):")
+            log_print("\nGold-Standard-Evaluation (mit AER):")
             gold_summary = gold_results.loc[:, ['Model', 'AER', 'Precision', 'Recall', 'F1-Score', 'Extracted_Count']].round(4)
-            print(gold_summary.to_markdown(index=False))
+            log_print(gold_summary.to_markdown(index=False))
         
         if len(full_results) > 0:
-            print("\nVollständige Test-Daten-Evaluation:")
+            log_print("\nVollständige Test-Daten-Evaluation:")
             full_summary = full_results.loc[:, ['Model', 'Precision', 'Recall', 'F1-Score', 'Extracted_Count']].round(4)
-            print(full_summary.to_markdown(index=False))
+            log_print(full_summary.to_markdown(index=False))
     
     # 6. Aufräumen der temporären Dateien
     import os
@@ -653,6 +700,14 @@ if __name__ == "__main__":
         temp_file = f"temp_{model_name.lower()}_gold.align"
         try:
             os.remove(temp_file)
-            print(f"Temporäre Datei entfernt: {temp_file}")
+            log_print(f"Temporäre Datei entfernt: {temp_file}")
         except FileNotFoundError:
             pass
+    
+    # 7. Analyse abgeschlossen
+    log_print("\n" + "="*60)
+    log_print("      ANALYSE ABGESCHLOSSEN")
+    log_print("="*60)
+    log_print(f"📝 Vollständiger Log gespeichert in: {log_file}")
+    log_print("   Verwenden Sie diese Datei zur späteren Überprüfung der Ergebnisse.")
+    log_print("="*60)
